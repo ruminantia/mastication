@@ -32,7 +32,7 @@ classification:
     - "personal"
     - "news"
     - "communications"
-    - "misc"
+    - "cud"
 
   response_format:
     type: "json"
@@ -50,4 +50,4 @@ classification:
     personal: "Physical and mental health observations, dietary notes, fitness tracking, personal well-being, interpersonal relationships, stress, things that relate to wellbeing"
     news: "Scraped web content, articles, news, informational reading material"
     communications: "Email drafts, correspondence, communication that needs sending"
-    misc: "Anything that doesn't fit other categories, ambiguous content, not sure, needs manual review"
+    cud: "Anything that doesn't fit other categories, ambiguous content, not sure, needs manual review"
