@@ -415,7 +415,7 @@ def main():
         input_dir.mkdir(parents=True, exist_ok=True)
 
         observer = Observer()
-        observer.schedule(processor, str(input_dir), recursive=False)
+        observer.schedule(processor, str(input_dir), recursive=True)
         observer.start()
 
         logging.info(f"Started monitoring directory: {input_dir}")
