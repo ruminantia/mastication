@@ -13,6 +13,8 @@ A production-ready Python tool that monitors a directory for new files, classifi
 
 ## Quick Start
 
+Before starting, ensure the `fodder_transcriptions` Docker volume exists and contains transcriptions from the Fodder project.
+
 ### Prerequisites
 
 - Docker and Docker Compose
@@ -170,6 +172,19 @@ python src/masticator.py --config config/config.yaml --verbose
 ```
 
 ## Configuration
+
+### Volume Configuration
+
+This Masticator instance is configured to:
+- Mount the `fodder_transcriptions` Docker volume as a read-only input directory
+- Process files with extensions: `.txt`, `.md`, `.markdown`
+- Never delete files from the input volume (read-only mount)
+- Save processed results to the local `./output` directory
+
+To verify the volume setup, run:
+```bash
+./test_volume.sh all
+```
 
 ### Environment Variables
 
