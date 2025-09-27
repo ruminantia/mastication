@@ -63,8 +63,8 @@ docker-compose.yml
 # Mastication specific
 input/*
 !input/.gitkeep
-output/*
-!output/.gitkeep
+bolus/*
+!bolus/.gitkeep
 
 # Temporary files
 tmp/

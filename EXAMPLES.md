@@ -9,7 +9,7 @@ This guide provides practical examples of how the classification system works wi
    ```bash
    ./run-docker.sh start
    ```
-3. **Drop files in the `input/` directory** and check `output/` for JSON results
+3. **Drop files in the `input/` directory** and check `bolus/` for JSON results
 
 ## Classification Categories
 
@@ -228,8 +228,8 @@ echo "Need to buy groceries: milk, eggs, bread, vegetables" > input/test_task.tx
 ./run-docker.sh logs
 
 # Or check the output directory
-ls -la output/
-cat output/*.json
+ls -la bolus/
+cat bolus/*.json
 ```
 
 ### Expected Output Structure

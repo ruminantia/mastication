@@ -73,7 +73,7 @@ EOF
     fi
 
     # Create directories if they don't exist
-    mkdir -p input output config
+    mkdir -p input bolus config
 
     return 0
 }

@@ -63,7 +63,7 @@ llm:
 
 monitoring:
   input_dir: "./input"
-  output_dir: "./output"
+  output_dir: "./bolus"
   file_extensions: [".txt", ".md", ".markdown"]
   polling_interval: 5
 
@@ -129,7 +129,7 @@ Drop files into the `input/` directory:
 echo "Hello, world!" > input/test.txt
 ```
 
-Check the `output/` directory for processed results.
+Check the `bolus/` directory for processed results.
 
 ## Manual Installation (Without Docker)
 
@@ -179,14 +179,14 @@ This Mastication instance is configured to:
 - Mount the `fodder_transcriptions` Docker volume as a read-only input directory
 - Process files with extensions: `.txt`, `.md`, `.markdown`
 - Never delete files from the input volume (read-only mount)
-- Save processed results to the local `./output` directory using a structured organization system
+- Save processed results to the local `./bolus` directory using a structured organization system
 
 ### Output Structure
 
 Processed files are organized in a structured directory hierarchy:
 
 ```
-output/
+bolus/
 ├── notes_rants/
 │   └── 2025/
 │       └── 09/
@@ -254,7 +254,7 @@ The default configuration automatically categorizes content. This mode:
 # File Monitoring
 monitoring:
   input_dir: "./input"                      # Directory to watch
-  output_dir: "./output"                    # Directory for outputs
+  output_dir: "./bolus"                    # Directory for outputs
   file_extensions: [".txt", ".md"]          # File types to process
   polling_interval: 5                       # Check interval in seconds
 
@@ -286,7 +286,7 @@ model: "openai/gpt-4o"
 1. Place a text file in `input/` directory
 2. Mastication detects the new file
 3. Sends content to LLM with your configured prompt
-4. Saves response to `output/` with timestamp
+4. Saves response to `bolus/` with timestamp
 
 ## Troubleshooting
 
@@ -344,7 +344,7 @@ echo "Meeting with team on Monday at 2pm" > input/test_event.txt
 echo "What's the best way to learn Python?" > input/test_question.txt
 
 # Monitor results
-tail -f output/*.json
+tail -f bolus/*.json
 ```
 
 ### File Structure
@@ -355,7 +355,7 @@ mastication/
 ├── config/
 │   └── config.yaml            # Default config
 ├── input/                     # Monitored directory
-├── output/                    # Processed JSON files
+├── bolus/                    # Processed JSON files
 ├── .env                       # Environment variables
 ├── requirements.txt           # Python dependencies
 ├── Dockerfile                 # Docker configuration
@@ -372,7 +372,7 @@ mastication/
 Team sync meeting on Friday at 10am to discuss Q2 goals
 ```
 
-**Output JSON** (`output/meeting_processed_1234567890.json`):
+**Output JSON** (`bolus/meeting_processed_1234567890.json`):
 ```json
 {
   "category": "events_calendar",

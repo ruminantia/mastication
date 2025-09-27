@@ -9,7 +9,7 @@ llm:
 
 monitoring:
   input_dir: "./input"
-  output_dir: "./output"
+  output_dir: "./bolus"
   file_extensions: [".txt", ".md", ".markdown"]
   polling_interval: 5
 
