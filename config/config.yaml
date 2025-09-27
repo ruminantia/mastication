@@ -28,7 +28,6 @@ classification:
   categories:
     - "notes_rants"
     - "questions_research"
-    - "events_calendar"
     - "tasks_todos"
     - "personal_matters"
     - "news_stories"
@@ -47,8 +46,7 @@ classification:
   guidelines:
     notes_rants: "Personal thoughts, reflections, ideas, creative writing, journal entries, unstructured content"
     questions_research: "Questions seeking answers, research topics, knowledge gaps, things to investigate"
-    events_calendar: "Appointments, meetings, dates, deadlines, time-sensitive events"
-    tasks_todos: "Action items, chores, work tasks, things that need to be done"
+    tasks_todos: "Action items, chores, work tasks, appointments, meetings, dates, deadlines, time-sensitive events, things that need to be done"
     personal_matters: "Health observations, dietary notes, fitness tracking, personal well-being"
     news_stories: "Scraped web content, articles, news, informational reading material"
     emails: "Email drafts, correspondence, communication that needs sending"

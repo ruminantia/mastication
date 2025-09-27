@@ -9,6 +9,7 @@ import time
 import logging
 import yaml
 import argparse
+from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -83,12 +84,6 @@ class FileProcessor(FileSystemEventHandler):
         max_size = self.config["processing"]["max_file_size"]
         if file_path.stat().st_size > max_size:
             logging.warning(f"File {file_path} exceeds maximum size limit")
-            return False
-
-        # Check if output file already exists
-        output_path = self.get_output_path(file_path)
-        if output_path.exists() and not self.config["processing"]["overwrite_existing"]:
-            logging.info(f"Output file already exists, skipping: {file_path}")
             return False
 
         return True
@@ -166,38 +161,85 @@ class FileProcessor(FileSystemEventHandler):
             logging.error(f"Error processing with LLM: {e}")
             return None
 
-    def get_output_path(self, input_path):
-        """Generate output file path"""
+    def get_output_path(self, input_path, category):
+        """Generate structured output file path"""
         input_path = Path(input_path)
         output_dir = Path(self.config["monitoring"]["output_dir"])
 
-        # Create output filename with timestamp
-        timestamp = int(time.time())
-        output_filename = f"{input_path.stem}_processed_{timestamp}{input_path.suffix}"
+        # Get current date for directory structure
+        now = datetime.now()
+        year = str(now.year)
+        month = f"{now.month:02d}"
+        day = f"{now.day:02d}"
 
-        return output_dir / output_filename
+        # Create category directory with date subfolders
+        category_dir = output_dir / category / year / month / day
+        category_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create filename with timestamp
+        timestamp = int(time.time())
+        output_filename = f"{timestamp}.json"
+
+        return category_dir / output_filename
 
     def save_response(self, response, input_path):
         """Save LLM response to output directory"""
         try:
-            output_path = self.get_output_path(input_path)
-
-            # Ensure output directory exists
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-
             # Check if response is a dictionary (JSON classification result)
             if isinstance(response, dict):
+                # Add input filename to response
+                input_filename = Path(input_path).name
+                response["input_filename"] = input_filename
+
+                # Get category for directory structure
+                category = response.get("category", "misc")
+
+                # Validate category against allowed categories from config
+                allowed_categories = self.config["classification"]["categories"]
+                if category not in allowed_categories:
+                    logging.warning(
+                        f"Invalid category '{category}', defaulting to 'misc'"
+                    )
+                    category = "misc"
+
+                # Generate output path based on category and date
+                output_path = self.get_output_path(input_path, category)
+
+                # Check if output file already exists
+                if (
+                    output_path.exists()
+                    and not self.config["processing"]["overwrite_existing"]
+                ):
+                    logging.info(f"Output file already exists, skipping: {input_path}")
+                    return
+
+                # Ensure output directory exists
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+
                 import json
 
                 with open(output_path, "w", encoding="utf-8") as f:
                     json.dump(response, f, indent=2, ensure_ascii=False)
             else:
+                # For non-JSON responses, use the misc category
+                output_path = self.get_output_path(input_path, "misc")
+
+                # Check if output file already exists
+                if (
+                    output_path.exists()
+                    and not self.config["processing"]["overwrite_existing"]
+                ):
+                    logging.info(f"Output file already exists, skipping: {input_path}")
+                    return
+
+                output_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(output_path, "w", encoding="utf-8") as f:
                     f.write(response)
 
             logging.info(f"Saved response to: {output_path}")
 
         except Exception as e:
+            logging.error(f"Error saving response for {input_path}: {e}")
             logging.error(f"Error saving response: {e}")
 
     def _build_classification_prompt(self, content, file_path):

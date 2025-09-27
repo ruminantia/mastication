@@ -179,11 +179,51 @@ This Masticator instance is configured to:
 - Mount the `fodder_transcriptions` Docker volume as a read-only input directory
 - Process files with extensions: `.txt`, `.md`, `.markdown`
 - Never delete files from the input volume (read-only mount)
-- Save processed results to the local `./output` directory
+- Save processed results to the local `./output` directory using a structured organization system
 
-To verify the volume setup, run:
-```bash
-./test_volume.sh all
+### Output Structure
+
+Processed files are organized in a structured directory hierarchy:
+
+```
+output/
+├── notes_rants/
+│   └── 2025/
+│       └── 09/
+│           └── 27/
+│               └── 1758994294.json
+├── questions_research/
+│   └── 2025/
+│       └── 09/
+│           └── 27/
+│               └── 1758994295.json
+├── events_calendar/
+│   └── 2025/
+│       └── 09/
+│           └── 27/
+│               └── 1758994296.json
+└── ... (other categories)
+```
+
+**Directory Structure:**
+- **Category directories** (e.g., `notes_rants/`, `questions_research/`) based on classification
+- **Date hierarchy** (`YYYY/MM/DD/`) for organized time-based storage
+- **Timestamp filenames** (e.g., `1758994294.json`) using Unix timestamps
+
+**JSON Output Format:**
+Each processed file generates a JSON file containing:
+- Original classification response (category, confidence, summary, tags)
+- Additional `input_filename` field showing the source file name
+- Example:
+```json
+{
+  "category": "notes_rants",
+  "confidence": 0.95,
+  "subcategory": "personal_reflection",
+  "summary": "Summary of the processed content",
+  "tags": ["tag1", "tag2"],
+  "input_filename": "original_transcription.txt"
+}
 ```
 
 ### Environment Variables
