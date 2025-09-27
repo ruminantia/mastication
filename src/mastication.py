@@ -9,12 +9,14 @@ import time
 import logging
 import yaml
 import argparse
+
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAI
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from .discord import discord_client
 
 # Load environment variables
 load_dotenv()
@@ -27,6 +29,7 @@ class FileProcessor(FileSystemEventHandler):
         self.config = config
         self.client = client
         self.processed_files = set()
+        self.discord_enabled = bool(os.getenv("DISCORD_BOT_TOKEN"))
 
     def on_created(self, event):
         """Called when a file is created"""
@@ -52,6 +55,10 @@ class FileProcessor(FileSystemEventHandler):
 
             logging.info(f"Processing file: {file_path}")
 
+            # Add thinking reaction if Discord is enabled
+            if self.discord_enabled:
+                discord_client.add_thinking_reaction(file_path)
+
             # Read file content
             content = self.read_file_content(file_path)
             if content is None:
@@ -63,13 +70,30 @@ class FileProcessor(FileSystemEventHandler):
                 # Save response
                 self.save_response(response, file_path)
 
+                # Send success notification
+                if self.discord_enabled:
+                    discord_client.update_reaction_and_notify(
+                        file_path, success=True, response=response
+                    )
+
                 # Delete input file if configured
                 if self.config["processing"]["delete_after_processing"]:
                     os.remove(file_path)
                     logging.info(f"Deleted input file: {file_path}")
 
+            return response
         except Exception as e:
             logging.error(f"Error processing file {file_path}: {e}")
+            # Send error notification if Discord is enabled
+            if self.discord_enabled:
+                try:
+                    discord_client.update_reaction_and_notify(
+                        file_path, success=False, error=str(e)
+                    )
+                except Exception as discord_error:
+                    logging.error(
+                        f"Error sending Discord notification: {discord_error}"
+                    )
 
     def should_process_file(self, file_path):
         """Check if file should be processed based on configuration"""
@@ -402,6 +426,13 @@ def main():
 
         config = load_config(config_path)
         logging.info(f"Loaded configuration from: {config_path}")
+
+        # Check if Discord is available
+        discord_initialized = bool(os.getenv("DISCORD_BOT_TOKEN"))
+        if discord_initialized:
+            logging.info("Discord integration enabled")
+        else:
+            logging.info("Discord integration disabled - no DISCORD_BOT_TOKEN found")
 
         # Create LLM client
         client = create_client(config)

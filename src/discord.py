@@ -1,219 +1,216 @@
+"""
+Discord integration for mastication pipeline.
+Uses Discord HTTP API for reactions and message sending.
+"""
+
 import os
-import discord
+import logging
+import requests
+import json
 from datetime import datetime
-import re
-
-from src.transcriber import Transcriber
-from src.audio_utils import chunk_audio
-
-# Discord bot token loaded from environment variables
-DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-
-# Configure Discord intents to allow message content access
-intents = discord.Intents.default()
-intents.message_content = True
-
-# Initialize Discord client with configured intents
-client = discord.Client(intents=intents)
-
-# Initialize the audio transcriber
-transcriber = Transcriber()
+from pathlib import Path
 
 
-@client.event
-async def on_ready():
-    """Handler for when the bot successfully connects to Discord."""
-    print(f"We have logged in as {client.user}")
+class DiscordClient:
+    """Simple Discord client using HTTP API"""
 
+    def __init__(self):
+        self.token = os.getenv("DISCORD_BOT_TOKEN")
+        self.base_url = "https://discord.com/api/v10"
+        self.headers = {
+            "Authorization": f"Bot {self.token}",
+            "Content-Type": "application/json",
+        }
 
-@client.event
-async def on_message(message):
-    """
-    Handler for incoming Discord messages.
+        # Channel IDs - these need to be configured
+        self.classifications_channel_id = os.getenv(
+            "DISCORD_CLASSIFICATIONS_CHANNEL_ID"
+        )
+        self.fodder_channel_id = os.getenv("DISCORD_FODDER_CHANNEL_ID")
+        self.guild_id = os.getenv("DISCORD_GUILD_ID")
 
-    Processes audio attachments in the #fodder channel by:
-    1. Downloading the audio file
-    2. Chunking long audio files
-    3. Transcribing with context-aware prompts
-    4. Saving transcriptions locally
-    5. Posting results to #transcriptions channel
-    6. Adding reaction emojis to indicate status
-    7. Cleaning up temporary files
-    """
-    # Ignore messages from the bot itself
-    if message.author == client.user:
-        return
+        self.initialized = bool(self.token)
 
-    # Only process messages in the dedicated #fodder channel
-    if message.channel.name != "fodder":
-        return
+    def get_message_id_from_filename(self, filename):
+        """Extract Discord message ID from filename"""
+        try:
+            # Remove file extension and extract message ID
+            message_id = Path(filename).stem
+            # Validate that it's a valid Discord message ID (numeric)
+            if message_id.isdigit():
+                return int(message_id)
+        except (ValueError, AttributeError):
+            pass
+        return None
 
-    # Process any audio attachments in the message
-    if message.attachments:
-        for attachment in message.attachments:
-            # Verify this is an audio file before processing
-            if attachment.content_type and attachment.content_type.startswith("audio/"):
-                try:
-                    # Add processing reaction
-                    await message.add_reaction("⏳")  # Hourglass emoji
+    def add_thinking_reaction(self, file_path):
+        """Add thinking emoji reaction to the original Discord message"""
+        if not self.initialized:
+            return False
 
-                    # Download the audio file to local storage
-                    audio_path = f"downloads/{attachment.filename}"
-                    if not os.path.exists("downloads"):
-                        os.makedirs("downloads")
-                    await attachment.save(audio_path)
+        try:
+            message_id = self.get_message_id_from_filename(Path(file_path).name)
+            if not message_id:
+                logging.warning(
+                    f"Could not extract message ID from filename: {file_path}"
+                )
+                return False
 
-                    # Split audio into manageable chunks if it's too long
-                    chunks = chunk_audio(audio_path)
+            # Add thinking reaction to the message in the fodder channel
+            if self.fodder_channel_id:
+                url = f"{self.base_url}/channels/{self.fodder_channel_id}/messages/{message_id}/reactions/%F0%9F%A4%94/@me"
+                response = requests.put(url, headers=self.headers)
 
-                    # Transcribe all chunks with context passing between them
-                    full_transcription = await transcriber.transcribe_chunks(chunks)
-
-                    # Save transcription to file with message ID and date-based structure
-                    now = datetime.now()
-                    year = now.strftime("%Y")
-                    month = now.strftime("%m")
-                    day = now.strftime("%d")
-
-                    # Create year/month/day directory structure
-                    output_dir = f"fodder/{year}/{month}/{day}"
-                    if not os.path.exists(output_dir):
-                        os.makedirs(output_dir)
-
-                    # Use original message ID as filename
-                    output_filename = f"{output_dir}/{message.id}.txt"
-
-                    with open(output_filename, "w") as f:
-                        f.write(full_transcription)
-
-                    # Find the transcriptions channel
-                    transcriptions_channel = discord.utils.get(
-                        message.guild.text_channels, name="transcriptions"
+                if response.status_code == 204:
+                    logging.info(f"Added thinking reaction to message {message_id}")
+                    return True
+                else:
+                    logging.warning(
+                        f"Failed to add thinking reaction: {response.status_code} - {response.text}"
                     )
+                    return False
+            else:
+                logging.warning(
+                    "DISCORD_FODDER_CHANNEL_ID not configured - cannot add reactions\n"
+                    "To enable Discord reactions, add DISCORD_FODDER_CHANNEL_ID to your .env file\n"
+                    "Get the channel ID by enabling Developer Mode in Discord and right-clicking the channel"
+                )
+                return False
 
-                    if not transcriptions_channel:
-                        # Fallback: use the original channel if transcriptions channel doesn't exist
-                        transcriptions_channel = message.channel
-                        print(
-                            "Warning: #transcriptions channel not found, using #fodder channel"
+        except Exception as e:
+            logging.error(f"Error adding thinking reaction: {e}")
+            return False
+
+    def update_reaction_and_notify(
+        self, file_path, success=True, response=None, error=None
+    ):
+        """Update reaction and send notification to classifications channel"""
+        if not self.initialized:
+            return False
+
+        try:
+            message_id = self.get_message_id_from_filename(Path(file_path).name)
+            if not message_id:
+                logging.warning(
+                    f"Could not extract message ID from filename: {file_path}"
+                )
+                return False
+
+            # Remove thinking reaction and add result reaction
+            if self.fodder_channel_id:
+                # Remove thinking reaction
+                remove_url = f"{self.base_url}/channels/{self.fodder_channel_id}/messages/{message_id}/reactions/%F0%9F%A4%94/@me"
+                requests.delete(remove_url, headers=self.headers)
+
+                # Add result reaction
+                if success:
+                    reaction_emoji = "%F0%9F%9A%80"  # 🚀
+                else:
+                    reaction_emoji = "%E2%9D%8C"  # ❌
+
+                add_url = f"{self.base_url}/channels/{self.fodder_channel_id}/messages/{message_id}/reactions/{reaction_emoji}/@me"
+                response_react = requests.put(add_url, headers=self.headers)
+
+                if response_react.status_code == 204:
+                    logging.info(f"Updated reaction for message {message_id}")
+                else:
+                    logging.warning(
+                        f"Failed to update reaction: {response_react.status_code}"
+                    )
+            else:
+                logging.warning(
+                    "DISCORD_FODDER_CHANNEL_ID not configured - cannot update reactions\n"
+                    "To enable Discord reactions, add DISCORD_FODDER_CHANNEL_ID to your .env file\n"
+                    "Get the channel ID by enabling Developer Mode in Discord and right-clicking the channel"
+                )
+
+            # Send notification to classifications channel
+            if self.classifications_channel_id:
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                if success:
+                    status = "Success"
+                    title = "**Classification Success** 🚀"
+
+                    if response and isinstance(response, dict):
+                        # Create clickable message link if guild ID is available
+                        message_link = (
+                            f"https://discord.com/channels/{self.guild_id}/{self.fodder_channel_id}/{message_id}"
+                            if self.guild_id and self.fodder_channel_id
+                            else f"Message ID: {message_id}"
                         )
 
-                    # Create a reference to the original message
-                    original_message_link = f"https://discord.com/channels/{message.guild.id}/{message.channel.id}/{message.id}"
+                        # Extract classification data
+                        category = response.get("category", "Unknown")
+                        confidence = response.get("confidence", 0.0)
+                        summary = response.get("summary", "No summary available")
+                        subcategory = response.get("subcategory")
+                        tags = response.get("tags", [])
 
-                    # Handle Discord's 2000-character message limit
-                    if len(full_transcription) > 2000:
-                        # Smart splitting that preserves chunk numbering structure
-                        max_content_length = 2000  # Full Discord character limit
+                        # Format confidence as percentage
+                        confidence_pct = f"{confidence * 100:.1f}%"
 
-                        messages = []
-                        current_message = ""
-
-                        # Split by chunk boundaries to maintain numbering context
-                        chunk_pattern = r"(?=\(\d+/\d+\))"
-                        text_chunks = re.split(chunk_pattern, full_transcription)
-                        text_chunks = [
-                            chunk.strip() for chunk in text_chunks if chunk.strip()
+                        # Build formatted message
+                        content_parts = [
+                            f"{title}",
+                            f"**Original Message:** {message_link}",
+                            f"**Timestamp:** {timestamp}",
+                            "---",
+                            f"**Category:** {category}",
+                            f"**Confidence:** {confidence_pct}",
                         ]
 
-                        if text_chunks:
-                            # Group chunks together when they fit within the limit
-                            for chunk in text_chunks:
-                                if (
-                                    len(current_message) + len(chunk) + 1
-                                    <= max_content_length
-                                ):
-                                    if current_message:
-                                        current_message += " " + chunk
-                                    else:
-                                        current_message = chunk
-                                else:
-                                    # Start new message when current one would exceed limit
-                                    if current_message:
-                                        messages.append(current_message)
-                                    current_message = chunk
+                        if subcategory:
+                            content_parts.append(f"**Subcategory:** {subcategory}")
 
-                                    # Handle individual chunks that are too large
-                                    if len(current_message) > max_content_length:
-                                        # Split oversized chunk across multiple messages
-                                        chunk_messages = [
-                                            current_message[i : i + max_content_length]
-                                            for i in range(
-                                                0,
-                                                len(current_message),
-                                                max_content_length,
-                                            )
-                                        ]
-                                        messages.extend(chunk_messages[:-1])
-                                        current_message = chunk_messages[-1]
+                        content_parts.extend(["", f"**Summary:** {summary}", ""])
 
-                            # Don't forget the last message
-                            if current_message:
-                                messages.append(current_message)
-                        else:
-                            # Fallback: simple character-based splitting
-                            messages = [
-                                full_transcription[i : i + max_content_length]
-                                for i in range(
-                                    0, len(full_transcription), max_content_length
-                                )
-                            ]
+                        if tags:
+                            tags_str = ", ".join([f"`{tag}`" for tag in tags])
+                            content_parts.append(f"**Tags:** {tags_str}")
 
-                        # Send header message with original message reference
-                        await transcriptions_channel.send(
-                            f"**Transcription from {message.author.display_name}**\n"
-                            f"Original message: {original_message_link}\n"
-                            f"Audio file: {attachment.filename}\n"
-                            f"Timestamp: {now.strftime('%Y-%m-%d %H:%M:%S')}\n"
-                            f"---"
-                        )
-
-                        # Send all message parts to transcriptions channel
-                        for i, msg_content in enumerate(messages, 1):
-                            if i == 1:
-                                # First part includes the header
-                                await transcriptions_channel.send(
-                                    f"```\n{msg_content}\n```"
-                                )
-                            else:
-                                await transcriptions_channel.send(
-                                    f"```\nPart {i}:\n{msg_content}\n```"
-                                )
+                        content = "\n".join(content_parts)
                     else:
-                        # Single message fits within Discord's limit
-                        await transcriptions_channel.send(
-                            f"**Transcription from {message.author.display_name}**\n"
-                            f"Original message: {original_message_link}\n"
-                            f"Audio file: {attachment.filename}\n"
-                            f"Timestamp: {now.strftime('%Y-%m-%d %H:%M:%S')}\n"
-                            f"---\n"
-                            f"```\n{full_transcription}\n```"
-                        )
+                        content = f"{title}\nOriginal message ID: {message_id}\nTimestamp: {timestamp}\n---\n*No response data available*"
+                else:
+                    status = "Fail"
+                    title = "**Classification Fail** ❌"
+                    error_msg = str(error) if error else "Unknown error"
 
-                    # Clean up temporary files to prevent disk space accumulation
-                    if os.path.exists(audio_path):
-                        os.remove(audio_path)
-                    if os.path.exists("temp_chunks"):
-                        for chunk_path in chunks:
-                            if os.path.exists(chunk_path):
-                                os.remove(chunk_path)
+                    if len(error_msg) > 1800:  # Leave room for message wrapper
+                        error_msg = error_msg[:1800] + "... (truncated)"
 
-                    # Remove processing reaction and add success reaction
-                    await message.remove_reaction("⏳", client.user)
-                    await message.add_reaction("✅")  # Checkmark emoji
+                    content = f"{title}\nOriginal message ID: {message_id}\nTimestamp: {timestamp}\n---\n```\n{error_msg}\n```"
 
-                except Exception as e:
-                    # Handle any errors during audio processing
-                    print(f"Error processing audio attachment: {e}")
+                # Send message to classifications channel
+                url = f"{self.base_url}/channels/{self.classifications_channel_id}/messages"
+                data = {"content": content}
 
-                    # Remove processing reaction and add error reaction
-                    try:
-                        await message.remove_reaction("⏳", client.user)
-                        await message.add_reaction("❌")  # Red X emoji
-                    except Exception:
-                        pass  # Ignore errors with reactions if they occur
+                response_msg = requests.post(url, headers=self.headers, json=data)
 
-                    # Send error message to the original channel
-                    await message.channel.send(
-                        f"Sorry, there was an error processing the audio file: {str(e)}"
+                if response_msg.status_code == 200:
+                    logging.info(f"Sent {status} notification for message {message_id}")
+                    return True
+                else:
+                    logging.warning(
+                        f"Failed to send notification: {response_msg.status_code} - {response_msg.text}"
                     )
+                    return False
+            else:
+                logging.warning(
+                    "DISCORD_CLASSIFICATIONS_CHANNEL_ID not configured - cannot send notifications\n"
+                    "To enable Discord notifications, add these to your .env file:\n"
+                    "- DISCORD_CLASSIFICATIONS_CHANNEL_ID\n"
+                    "- DISCORD_FODDER_CHANNEL_ID  \n"
+                    "- DISCORD_GUILD_ID\n"
+                    "Get the IDs by enabling Developer Mode in Discord and right-clicking the respective channels/server"
+                )
+                return False
+
+        except Exception as e:
+            logging.error(f"Error in Discord notification: {e}")
+            return False
+
+
+# Global Discord client instance
+discord_client = DiscordClient()
