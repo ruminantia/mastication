@@ -1,0 +1,55 @@
+llm:
+  base_url: "https://openrouter.ai/api/v1"
+  model: "google/gemini-2.5-flash-preview-09-2025"
+  temperature: 0.1 # Lower temperature for consistent classification
+  max_tokens: 500
+  system_prompt: |
+    You are a classification assistant that analyzes text content and categorizes it into specific types.
+    Your task is to classify the input text into one of the predefined categories based on its content and purpose.
+
+monitoring:
+  input_dir: "./input"
+  output_dir: "./output"
+  file_extensions: [".txt", ".md", ".markdown"]
+  polling_interval: 5
+
+# API Headers (optional)
+headers:
+  # Optional headers for OpenRouter or other services
+  HTTP-Referer: "" # Site URL for rankings on openrouter.ai
+  X-Title: "" # Site title for rankings on openrouter.ai
+
+processing:
+  delete_after_processing: false
+  overwrite_existing: false
+  max_file_size: 10485760 # 10MB
+
+classification:
+  categories:
+    - "notes_rants"
+    - "questions_research"
+    - "events_calendar"
+    - "tasks_todos"
+    - "personal_matters"
+    - "news_stories"
+    - "emails"
+    - "misc"
+
+  response_format:
+    type: "json"
+    schema:
+      category: "string"
+      confidence: "number"
+      subcategory: "string|null"
+      summary: "string"
+      tags: "array"
+
+  guidelines:
+    notes_rants: "Personal thoughts, reflections, ideas, creative writing, journal entries, unstructured content"
+    questions_research: "Questions seeking answers, research topics, knowledge gaps, things to investigate"
+    events_calendar: "Appointments, meetings, dates, deadlines, time-sensitive events"
+    tasks_todos: "Action items, chores, work tasks, things that need to be done"
+    personal_matters: "Health observations, dietary notes, fitness tracking, personal well-being"
+    news_stories: "Scraped web content, articles, news, informational reading material"
+    emails: "Email drafts, correspondence, communication that needs sending"
+    misc: "Anything that doesn't fit other categories, ambiguous content"
