@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Masticator - A simple file monitoring and LLM processing tool
+Mastication - A simple file monitoring and LLM processing tool
 Monitors a directory for new files, processes them with an LLM, and saves responses.
 """
 
@@ -374,7 +374,7 @@ def setup_logging():
 def main():
     """Main application entry point"""
     parser = argparse.ArgumentParser(
-        description="Masticator - File monitoring and LLM processing"
+        description="Mastication - File monitoring and LLM processing"
     )
     parser.add_argument(
         "--config",

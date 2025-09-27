@@ -1,11 +1,11 @@
-# Masticator Classification Examples
+# Mastication Classification Examples
 
 This guide provides practical examples of how the classification system works with different types of input content.
 
 ## Quick Start with Classification
 
 1. **Use the default configuration** (already set up for classification)
-2. **Start Masticator:**
+2. **Start Mastication:**
    ```bash
    ./run-docker.sh start
    ```
@@ -13,7 +13,7 @@ This guide provides practical examples of how the classification system works wi
 
 ## Classification Categories
 
-Masticator classifies content into 8 specific categories:
+Mastication classifies content into specific categories:
 
 | Category | Description | Example Content |
 |----------|-------------|-----------------|
@@ -303,7 +303,7 @@ guidelines:
 ./run-docker.sh logs
 
 # Check for classification-specific messages
-docker compose logs masticator | grep -i classification
+docker compose logs mastication | grep -i classification
 ```
 
 ## Next Steps After Classification

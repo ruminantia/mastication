@@ -1,4 +1,4 @@
-# Masticator
+# Mastication
 
 A production-ready Python tool that monitors a directory for new files, classifies them with an LLM, and saves structured JSON output. Designed to be API-agnostic and support any OpenAI-compatible endpoint.
 
@@ -22,7 +22,7 @@ Before starting, ensure the `fodder_transcriptions` Docker volume exists and con
 
 ### Configuration Options
 
-Masticator is optimized for classification but supports two modes:
+Mastication is optimized for classification but supports two modes:
 
 1. **Classification Mode** (Default): Automatic categorization into content types
 2. **Generic Processing**: Basic file processing with custom prompts
@@ -32,8 +32,8 @@ The default configuration (`config/config.yaml`) uses classification mode.
 ### 1. Clone and Setup
 
 ```bash
-git clone https://github.com/ruminantia/masticator.git
-cd masticator
+git clone https://github.com/ruminantia/mastication.git
+cd mastication
 ```
 
 ### 2. Configure Environment
@@ -149,13 +149,13 @@ pip install -r requirements.txt
 ### 3. Run the Application
 
 ```bash
-python src/masticator.py
+python src/mastication.py
 ```
 
 Or with custom config:
 
 ```bash
-python src/masticator.py --config config/config.yaml --verbose
+python src/mastication.py --config config/config.yaml --verbose
 ```
 
 ## Available Scripts
@@ -175,7 +175,7 @@ python src/masticator.py --config config/config.yaml --verbose
 
 ### Volume Configuration
 
-This Masticator instance is configured to:
+This Mastication instance is configured to:
 - Mount the `fodder_transcriptions` Docker volume as a read-only input directory
 - Process files with extensions: `.txt`, `.md`, `.markdown`
 - Never delete files from the input volume (read-only mount)
@@ -272,7 +272,7 @@ processing:
 
 ## Supported LLM Providers
 
-Masticator works with any OpenAI-compatible API. Here are some examples:
+Mastication works with any OpenAI-compatible API. Here are some examples:
 
 ### OpenRouter
 ```yaml
@@ -284,7 +284,7 @@ model: "openai/gpt-4o"
 
 ### Basic File Processing
 1. Place a text file in `input/` directory
-2. Masticator detects the new file
+2. Mastication detects the new file
 3. Sends content to LLM with your configured prompt
 4. Saves response to `output/` with timestamp
 
@@ -315,12 +315,12 @@ Using the convenience script:
 
 Or directly:
 ```bash
-docker compose logs -f masticator
+docker compose logs -f mastication
 ```
 
 Manual installation:
 ```bash
-python src/masticator.py --verbose
+python src/mastication.py --verbose
 ```
 
 ## Development
@@ -333,7 +333,7 @@ python src/masticator.py --verbose
 
 Or directly:
 ```bash
-docker build -t masticator .
+docker build -t mastication .
 ```
 
 ### Testing the System
@@ -350,8 +350,8 @@ tail -f output/*.json
 ### File Structure
 
 ```
-masticator/
-├── src/masticator.py          # Main application
+mastication/
+├── src/mastication.py          # Main application
 ├── config/
 │   └── config.yaml            # Default config
 ├── input/                     # Monitored directory

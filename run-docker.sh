@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Masticator Startup Script
-# A simple script to run Masticator with Docker Compose
+# Mastication Startup Script
+# A simple script to run Mastication with Docker Compose
 
 set -e
 
@@ -14,19 +14,19 @@ NC='\033[0m' # No Color
 
 # Function to print colored output
 print_status() {
-    echo -e "${BLUE}[Masticator]${NC} $1"
+    echo -e "${BLUE}[Mastication]${NC} $1"
 }
 
 print_success() {
-    echo -e "${GREEN}[Masticator]${NC} $1"
+    echo -e "${GREEN}[Mastication]${NC} $1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}[Masticator]${NC} $1"
+    echo -e "${YELLOW}[Mastication]${NC} $1"
 }
 
 print_error() {
-    echo -e "${RED}[Masticator]${NC} $1"
+    echo -e "${RED}[Mastication]${NC} $1"
 }
 
 # Function to check if Docker is running
@@ -57,7 +57,7 @@ check_requirements() {
     if [ ! -f ".env" ]; then
         print_warning ".env file not found. Creating template .env file."
         cat > .env << EOF
-# Masticator Environment Variables
+# Mastication Environment Variables
 # Set your API key for your preferred LLM provider
 
 # For OpenRouter (recommended)
@@ -83,11 +83,11 @@ show_usage() {
     echo "Usage: $0 [command]"
     echo ""
     echo "Commands:"
-    echo "  start      Start Masticator in detached mode (default)"
-    echo "  stop       Stop Masticator"
-    echo "  restart    Restart Masticator"
-    echo "  logs       Show logs from Masticator"
-    echo "  status     Show status of Masticator"
+    echo "  start      Start Mastication in detached mode (default)"
+    echo "  stop       Stop Mastication"
+    echo "  restart    Restart Mastication"
+    echo "  logs       Show logs from Mastication"
+    echo "  status     Show status of Mastication"
     echo "  build      Build the Docker image"
     echo "  clean      Stop and remove containers"
     echo "  help       Show this help message"
@@ -98,9 +98,9 @@ show_usage() {
     echo "  $0 stop      # Stop the service"
 }
 
-# Function to start Masticator
-start_masticator() {
-    print_status "Starting Masticator..."
+# Function to start Mastication
+start_mastication() {
+    print_status "Starting Mastication..."
     check_docker
     check_requirements
 
@@ -113,47 +113,47 @@ start_masticator() {
     fi
 
     docker compose up -d
-    print_success "Masticator started successfully!"
+    print_success "Mastication started successfully!"
     print_status "Place files in the 'input' directory to start processing"
     print_status "View logs with: $0 logs"
 }
 
-# Function to stop Masticator
-stop_masticator() {
-    print_status "Stopping Masticator..."
+# Function to stop Mastication
+stop_mastication() {
+    print_status "Stopping Mastication..."
     docker compose down
-    print_success "Masticator stopped successfully!"
+    print_success "Mastication stopped successfully!"
 }
 
-# Function to restart Masticator
-restart_masticator() {
-    print_status "Restarting Masticator..."
+# Function to restart Mastication
+restart_mastication() {
+    print_status "Restarting Mastication..."
     docker compose restart
-    print_success "Masticator restarted successfully!"
+    print_success "Mastication restarted successfully!"
 }
 
 # Function to show logs
 show_logs() {
-    print_status "Showing Masticator logs (Ctrl+C to exit)..."
-    docker compose logs -f masticator
+    print_status "Showing Mastication logs (Ctrl+C to exit)..."
+    docker compose logs -f mastication
 }
 
 # Function to show status
 show_status() {
-    print_status "Masticator status:"
+    print_status "Mastication status:"
     docker compose ps
 }
 
 # Function to build the image
 build_image() {
-    print_status "Building Masticator Docker image..."
+    print_status "Building Mastication Docker image..."
     docker compose build
     print_success "Docker image built successfully!"
 }
 
 # Function to clean up
 clean_up() {
-    print_status "Cleaning up Masticator containers..."
+    print_status "Cleaning up Mastication containers..."
     docker compose down
     print_success "Cleanup completed!"
 }
@@ -163,13 +163,13 @@ COMMAND=${1:-start}
 
 case $COMMAND in
     start)
-        start_masticator
+        start_mastication
         ;;
     stop)
-        stop_masticator
+        stop_mastication
         ;;
     restart)
-        restart_masticator
+        restart_mastication
         ;;
     logs)
         show_logs

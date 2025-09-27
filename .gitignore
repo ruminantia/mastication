@@ -60,7 +60,7 @@ Dockerfile
 docker-compose.yml
 .dockerignore
 
-# Masticator specific
+# Mastication specific
 input/*
 !input/.gitkeep
 output/*
