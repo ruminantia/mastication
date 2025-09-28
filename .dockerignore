@@ -1,4 +1,6 @@
-# Python
+# .dockerignore file for Mastication
+
+# Python cache and build files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -50,16 +52,19 @@ Thumbs.db
 *.log
 logs/
 
-# Environment files (except .env.example)
-.env
+# Environment files (except .env which we want to mount)
+.env.example
 .env.local
 .env.production
 
-# Mastication specific
-input/*
-!input/.gitkeep
-bolus/*
-!bolus/.gitkeep
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
 
 # Temporary files
 tmp/

@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  mastication:
+    build: .
+    container_name: mastication
+    volumes:
+      - fodder_transcriptions:/app/input:ro
+      - bolus:/app/bolus:rw
+      - ./config:/app/config:ro
+      - ./.env:/app/.env:ro
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  bolus:
+    driver: local
+  fodder_transcriptions:
+    external: true
